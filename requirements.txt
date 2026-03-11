@@ -2,3 +2,4 @@ supabase
 python-dotenv
 fastapi
 uvicorn
+google-genai
