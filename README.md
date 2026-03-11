@@ -2,7 +2,7 @@
 
 A FastAPI-based backend service that analyzes voice call transcripts and generates concise, structured summaries. The system retrieves conversation data from Supabase, processes transcripts using Google Gemini AI, and produces structured insights from the latest conversation. It is designed as a general-purpose conversation summarization tool that can be integrated into various applications requiring automated analysis of call transcripts.
 
-## Purpose (For Recruitment Workflows)
+## Purpose (For my specific usecase)
 
 This tool extracts actionable intelligence from conversational data between recruitment agents and job seekers by:
 
