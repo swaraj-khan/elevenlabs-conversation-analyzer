@@ -71,6 +71,29 @@ Callback Time: <specific callback datetime if requested, otherwise blank>
 | `GOOGLE_API_KEY` | Google Gemini API key |
 | `GEMINI_MODEL` | Gemini model identifier (e.g., `gemini-2.5-flash`) |
 
+## Database Schema
+
+The application queries the `voice_calls` table in Supabase:
+
+```sql
+create table public.<table_name> (
+  id uuid not null default gen_random_uuid (),
+  call_id text not null,
+  caller text null,
+  callee text null,
+  status text null,
+  duration integer null,
+  transcript text null,
+  recording_path text null,
+  cost numeric null,
+  metadata jsonb null,
+  raw_payload jsonb null,
+  created_at timestamp with time zone null default now(),
+  constraint <table_name>_pkey primary key (id),
+  constraint <table_name>_id_key unique (call_id)
+) TABLESPACE pg_default;
+```
+
 ## Architecture
 
 1. **Data Source**: Calls are stored in Supabase `voice_calls` table with fields: `call_id`, `caller`, `recording_path`, `transcript`, `created_at`
