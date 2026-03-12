@@ -1,0 +1,52 @@
+org: testingswa
+service: elevenlabs-conversation-analyzer
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: ap-south-1
+  stage: ${opt:stage, "dev"}
+  timeout: 30
+  memorySize: 256
+  environment:
+    SUPABASE_TABLE: "voice_calls"
+    SUPABASE_URL: ${ssm:/kovon/nurse/${self:provider.stage}/SUPABASE_URL}
+    SUPABASE_ANON_KEY: ${ssm:/kovon/${self:provider.stage}/nurse/SUPABASE_ANON_KEY}
+    GOOGLE_API_KEY: ${ssm:/kovon/${self:provider.stage}/nurse/GOOGLE_API_KEY}
+    GEMINI_MODEL: "gemini-2.5-flash"
+    MONGO_URI: ${ssm:/kovon/nurse/${self:provider.stage}/MONGO_URI}
+
+plugins:
+  - serverless-python-requirements
+  - serverless-offline
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    slim: true
+
+functions:
+  summary:
+    handler: main.handler
+    events:
+      - httpApi:
+          path: /calls/{phone}/summary
+          method: GET
+
+  transcript:
+    handler: main.handler
+    events:
+      - httpApi:
+          path: /calls/{phone}/transcript
+          method: GET
+
+package:
+  patterns:
+    - main.py
+    - prompts/**
+    - "!venv/**"
+    - "!node_modules/**"
+    - "!__pycache__/**"
+    - "!.git/**"
+    - "!.serverless/**"
+    - "!.env*"

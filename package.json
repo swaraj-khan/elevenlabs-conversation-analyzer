@@ -1,0 +1,26 @@
+{
+  "name": "elevenlabs-conversation-analyzer",
+  "version": "1.0.0",
+  "description": "A FastAPI-based backend service that analyzes voice call transcripts and generates concise, structured summaries. The system retrieves conversation data from Supabase, processes transcripts using Google Gemini AI, and produces structured insights from the latest conversation. It is designed as a general-purpose conversation summarization tool that can be integrated into various applications requiring automated analysis of call transcripts.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/swaraj-khan/elevenlabs-conversation-analyzer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/swaraj-khan/elevenlabs-conversation-analyzer/issues"
+  },
+  "homepage": "https://github.com/swaraj-khan/elevenlabs-conversation-analyzer#readme",
+  "devDependencies": {
+    "serverless": "^4.33.0",
+    "serverless-offline": "^14.5.0",
+    "serverless-python-requirements": "^6.1.2"
+  }
+}
