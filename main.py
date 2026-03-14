@@ -2,12 +2,15 @@ import os
 import ast
 import re
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from supabase import create_client
 from google import genai
 from mangum import Mangum
 from pymongo import MongoClient
 from bson import ObjectId
+from datetime import datetime
+from pydantic import BaseModel
+from typing import Optional
 
 load_dotenv()
 
@@ -22,11 +25,35 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 mongo_client = MongoClient(MONGO_URI)
 read_db = mongo_client["kovon-nurse-preprod"]
+write_db = mongo_client["AI-BOT"]
 
 genai_client = genai.Client(api_key=GOOGLE_API_KEY)
 
 app = FastAPI()
 handler = Mangum(app)
+
+
+class SaveProfileRequest(BaseModel):
+    phoneNumber: str
+    fullName: str
+    primarySkill: str
+    targetCountry: str
+    secondarySkill: Optional[str] = None
+    secondaryCountry: Optional[str] = None
+    experienceType: Optional[str] = None
+    internationalExperience: Optional[bool] = None
+
+
+class ApplyJobRequest(BaseModel):
+    job_id: str
+    user_id: Optional[str] = None
+
+
+class RaiseQueryRequest(BaseModel):
+    userId: str
+    title: str
+    description: str
+
 
 
 def normalize_phone(num: str) -> str:
@@ -95,17 +122,21 @@ def summarize_conversation(transcript):
         f"{msg['role']}: {msg['message']}"
         for msg in transcript
     )
+
     prompt = f"""
 {system_prompt}
 
 Conversation:
 {conversation_text}
 """
+
     response = genai_client.models.generate_content(
         model=GEMINI_MODEL,
         contents=prompt
     )
+
     return response.text.strip()
+
 
 
 @app.get("/calls/{phone}/summary")
@@ -157,4 +188,141 @@ def get_transcript(phone: str):
         "success": True,
         "phone": normalized_phone,
         "transcript": transcript
+    }
+
+
+
+@app.post("/save-profile")
+def save_profile(data: SaveProfileRequest):
+
+    normalized = normalize_phone(data.phoneNumber)
+
+    update_data = {
+        "fullName": data.fullName,
+        "targetJobRole": {"name": data.primarySkill},
+        "secondaryJobRoles": [{"name": data.secondarySkill}] if data.secondarySkill else [],
+        "targetCountry": {"name": data.targetCountry},
+        "secondaryCountries": [{"name": data.secondaryCountry}] if data.secondaryCountry else [],
+        "experienceType": data.experienceType,
+        "internationalExperience": data.internationalExperience,
+        "isProfileCompleted": True,
+        "updatedAt": datetime.utcnow()
+    }
+
+    write_db.users.update_one(
+        {"phoneNumber": normalized},
+        {
+            "$set": update_data,
+            "$setOnInsert": {
+                "phoneNumber": normalized,
+                "createdAt": datetime.utcnow()
+            }
+        },
+        upsert=True
+    )
+
+    return {
+        "success": True,
+        "phoneNumber": normalized
+    }
+
+
+@app.get("/jobs")
+def list_jobs(country: str = Query(None), role: str = Query(None)):
+
+    match = {
+        "isActive": True,
+        "status": "PUBLISHED"
+    }
+
+    if country:
+        match["location.country"] = {"$regex": country, "$options": "i"}
+
+    if role:
+        match["jobRole.name"] = {"$regex": role, "$options": "i"}
+
+    jobs = list(
+        read_db.jobs.find(
+            match,
+            {
+                "title": 1,
+                "location.country": 1,
+                "salary.dataForCandidate": 1,
+                "company.name": 1
+            }
+        ).limit(20)
+    )
+
+    result = [
+        {
+            "id": str(j["_id"]),
+            "title": j.get("title"),
+            "country": j.get("location", {}).get("country"),
+            "salary": j.get("salary", {}).get("dataForCandidate", {}),
+            "company": j.get("company", {}).get("name")
+        }
+        for j in jobs
+    ]
+
+    return {
+        "success": True,
+        "jobs": result
+    }
+
+
+@app.get("/applications/{user_id}")
+def get_applications(user_id: str):
+
+    apps = list(
+        read_db.appliedjobs.find(
+            {"userId": ObjectId(user_id)},
+            {
+                "jobSnapshot.title": 1,
+                "applicationStatus": 1
+            }
+        )
+    )
+
+    result = [
+        {
+            "title": a.get("jobSnapshot", {}).get("title"),
+            "status": a.get("applicationStatus")
+        }
+        for a in apps
+    ]
+
+    return {
+        "success": True,
+        "applications": result
+    }
+
+
+@app.post("/applyJob")
+def apply_job(data: ApplyJobRequest):
+
+    result = write_db.job_applications.insert_one({
+        "userId": ObjectId(data.user_id) if data.user_id else None,
+        "jobId": ObjectId(data.job_id),
+        "appliedAt": datetime.utcnow(),
+        "status": "APPLIED"
+    })
+
+    return {
+        "success": True,
+        "applicationId": str(result.inserted_id)
+    }
+
+
+@app.post("/raise-query")
+def raise_query(data: RaiseQueryRequest):
+
+    write_db.queries.insert_one({
+        "userId": ObjectId(data.userId),
+        "requestTitle": data.title,
+        "description": data.description,
+        "createdAt": datetime.utcnow()
+    })
+
+    return {
+        "success": True
     }

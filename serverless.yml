@@ -26,6 +26,7 @@ custom:
     slim: true
 
 functions:
+
   summary:
     handler: main.handler
     events:
@@ -39,6 +40,41 @@ functions:
       - httpApi:
           path: /calls/{phone}/transcript
           method: GET
+
+  saveProfile:
+    handler: main.handler
+    events:
+      - httpApi:
+          path: /save-profile
+          method: POST
+
+  jobs:
+    handler: main.handler
+    events:
+      - httpApi:
+          path: /jobs
+          method: GET
+
+  applications:
+    handler: main.handler
+    events:
+      - httpApi:
+          path: /applications/{user_id}
+          method: GET
+
+  applyJob:
+    handler: main.handler
+    events:
+      - httpApi:
+          path: /applyJob
+          method: POST
+
+  raiseQuery:
+    handler: main.handler
+    events:
+      - httpApi:
+          path: /raise-query
+          method: POST
 
 package:
   patterns:
