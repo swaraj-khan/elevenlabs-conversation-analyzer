@@ -1,12 +1,14 @@
 # ElevenLabs Conversation Analyzer
 
-A FastAPI-based backend service that analyzes voice call transcripts and generates concise, structured summaries. The system retrieves conversation data from Supabase, processes transcripts using Google Gemini AI, and produces structured insights from the latest conversation.
+A FastAPI-based backend service that retrieves analyzed voice call data and user profiles. Conversation transcripts are processed by a separate webhook service that generates structured summaries using Google Gemini and stores them in Supabase. This API simply fetches the latest call information and returns the stored insights.
 
 The service is designed to run serverlessly on **AWS Lambda using the Serverless Framework**, enabling scalable deployment without managing servers.
 
 ## Purpose (For my specific use case)
 
-This tool extracts actionable intelligence from conversational data between recruitment agents and job seekers by:
+This service retrieves actionable intelligence from conversational data between recruitment agents and job seekers. The analysis is performed by a webhook processor that runs after each call and stores structured summaries in Supabase.
+
+The system enables automated recruitment workflows by:
 
 - Parsing raw transcript data from voice calls
 - Identifying the user’s intent, job role preference, and country preference
@@ -23,9 +25,9 @@ Components involved:
 - FastAPI — API framework
 - AWS Lambda — serverless compute runtime
 - API Gateway (HTTP API) — exposes the endpoints
-- Supabase — stores call transcripts and metadata
+- Supabase — stores call transcripts, metadata, and AI-generated summaries
 - MongoDB — stores user profile information
-- Google Gemini — generates conversation summaries
+- Google Gemini — used by the webhook processor to generate summaries
 - Serverless Framework — deployment and infrastructure management
 
 ## API Endpoints
@@ -127,9 +129,9 @@ Example Response
 }
 ```
 
-## Summary Output Structure
+## Stored Summary Structure
 
-The summary returned by the AI follows a strict structure:
+The webhook processor generates summaries using Google Gemini and stores them in Supabase. The API simply returns the stored summary, which follows this structure:
 
 ```
 User Intent: <user's primary goal>
@@ -148,8 +150,6 @@ Create a `.env` file in the project root.
 SUPABASE_TABLE=voice_calls
 SUPABASE_URL=xxxx
 SUPABASE_ANON_KEY=xxxx
-GOOGLE_API_KEY=xxxx
-GEMINI_MODEL=gemini-2.5-flash
 MONGO_URI=xxxx
 ```
 
@@ -166,6 +166,7 @@ create table public.<table_name> (
   status text null,
   duration integer null,
   transcript text null,
+  summary text null,
   recording_path text null,
   cost numeric null,
   metadata jsonb null,
@@ -217,10 +218,10 @@ After deployment, the API will be accessible through the generated API Gateway e
 
 ## Architecture Flow
 
-1. Calls are stored in Supabase in the `<table_name>` table.
-2. The API receives a phone number request.
-3. The latest call for that phone number is retrieved.
-4. The transcript is cleaned and formatted.
-5. Google Gemini processes the conversation using the prompt defined in `prompts/intention-finder.md`.
-6. A structured summary is generated.
-7. The API returns the summary along with the user profile from MongoDB.
+1. Voice call webhooks are received by a processing service.
+2. The webhook service stores call data and transcripts in Supabase.
+3. Google Gemini analyzes the conversation and generates a structured summary.
+4. The summary is stored in the `voice_calls` table.
+5. This API receives a phone number request.
+6. The latest call record for that phone number is retrieved from Supabase.
+7. The API returns the stored summary along with the user profile from MongoDB.
