@@ -194,7 +194,7 @@ npx serverless offline
 Example local request
 
 ```
-http://localhost:3000/calls/8618893815/summary
+http://localhost:3000/calls/+919999999999/summary
 ```
 
 ### Deployment
