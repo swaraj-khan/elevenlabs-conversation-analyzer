@@ -234,6 +234,7 @@ def list_jobs(country: str = Query(None), role: str = Query(None)):
                 "title": 1,
                 "location.country": 1,
                 "salary.dataForCandidate": 1,
+                "salary.frequency": 1,
                 "company.name": 1
             }
         ).limit(20)
@@ -245,6 +246,7 @@ def list_jobs(country: str = Query(None), role: str = Query(None)):
             "title": j.get("title"),
             "country": j.get("location", {}).get("country"),
             "salary": j.get("salary", {}).get("dataForCandidate", {}),
+            "frequency": j.get("salary", {}).get("frequency"),
             "company": j.get("company", {}).get("name")
         }
         for j in jobs
