@@ -127,20 +127,13 @@ def get_summary(phone: str):
 
     normalized_phone = normalize_phone(phone)
 
-    # Fetch user profile
     user = read_db.users.find_one({"phoneNumber": normalized_phone})
     user_data = serialize(user) if user else None
 
-    # Fetch latest call
     call = fetch_latest_call(normalized_phone)
 
     if not call:
-        return {
-            "success": True,
-            "normalized": normalized_phone,
-            "user": user_data,
-            "call": None
-        }
+        return None
 
     return {
         "success": True,
@@ -163,11 +156,7 @@ def get_transcript(phone: str):
     call = fetch_latest_call(normalized_phone)
 
     if not call:
-        return {
-            "success": True,
-            "phone": normalized_phone,
-            "transcript": None
-        }
+        return None
 
     transcript = clean_transcript(call["transcript"]) if call.get("transcript") else None
 
@@ -176,7 +165,6 @@ def get_transcript(phone: str):
         "phone": normalized_phone,
         "transcript": transcript
     }
-
 
 @app.post("/save-profile")
 def save_profile(data: SaveProfileRequest):
