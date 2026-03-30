@@ -201,50 +201,61 @@ def save_profile(data: SaveProfileRequest):
     }
 
 
+import requests
+
 @app.get("/jobs")
-def list_jobs(country: str = Query(None), role: str = Query(None)):
+def list_jobs(
+    jobRole: str = Query(...),
+    country: str = Query(...)
+):
 
-    match = {
-        "isActive": True,
-        "status": "PUBLISHED"
-    }
-
-    if country:
-        match["location.country"] = {"$regex": country, "$options": "i"}
-
-    if role:
-        match["jobRole.name"] = {"$regex": role, "$options": "i"}
-
-    jobs = list(
-        read_db.jobs.find(
-            match,
-            {
-                "title": 1,
-                "location.country": 1,
-                "salary.dataForCandidate": 1,
-                "salary.frequency": 1,
-                "company.name": 1
-            }
-        ).limit(20)
+    job = read_db.jobs.find_one(
+        {
+            "isActive": True,
+            "status": "PUBLISHED",
+            "jobRole.name": {"$regex": jobRole, "$options": "i"}
+        },
+        {
+            "jobRole": 1
+        }
     )
 
-    result = [
-        {
-            "id": str(j["_id"]),
-            "title": j.get("title"),
-            "country": j.get("location", {}).get("country"),
-            "salary": j.get("salary", {}).get("dataForCandidate", {}),
-            "frequency": j.get("salary", {}).get("frequency"),
-            "company": j.get("company", {}).get("name")
+    if not job:
+        return {
+            "success": False,
+            "message": "No matching job role found"
         }
-        for j in jobs
-    ]
+
+    job_role_id = str(job.get("jobRole", {}).get("id"))
+
+    if not job_role_id:
+        return {
+            "success": False,
+            "message": "Job role ID not found"
+        }
+
+    url = "https://q01w1i707b.execute-api.ap-south-1.amazonaws.com/preprod/candidate/jobs/public"
+
+    params = {
+        "jobRoleId": job_role_id,
+        "country": country   
+    }
+
+    response = requests.get(url, params=params)
+
+    if response.status_code != 200:
+        return {
+            "success": False,
+            "message": "External API failed",
+            "status_code": response.status_code
+        }
 
     return {
         "success": True,
-        "jobs": result
+        "jobRoleId": job_role_id,
+        "country": country,
+        "data": response.json()
     }
-
 
 @app.get("/applications/{user_id}")
 def get_applications(user_id: str):
