@@ -258,4 +258,5 @@ cython_debug/
 
 # End of https://mrkandreev.name/snippets/gitignore-generator/#Node,Python
 python/*
+python/
 package-lock.json
